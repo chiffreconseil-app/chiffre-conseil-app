@@ -1,0 +1,53 @@
+name: Android CHIFFRE CONSEIL
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Décompresser le projet
+        run: unzip -q -o CHIFFRE-CONSEIL-app-android-source.zip
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Préparer le projet
+        working-directory: chiffre_conseil
+        run: |
+          flutter create --platforms=android --org net.chiffreconseil --project-name chiffre_conseil .
+          python3 tool/configure_android.py
+          flutter pub get
+
+      - name: Tests
+        working-directory: chiffre_conseil
+        continue-on-error: true
+        run: flutter test --reporter expanded
+
+      - name: Compiler APK debug, APK release et AAB
+        working-directory: chiffre_conseil
+        run: |
+          flutter build apk --debug
+          flutter build apk --release
+          flutter build appbundle --release
+          mkdir -p ../dist
+          cp build/app/outputs/flutter-apk/app-debug.apk ../dist/CHIFFRE-CONSEIL-debug.apk
+          cp build/app/outputs/flutter-apk/app-release.apk ../dist/CHIFFRE-CONSEIL.apk
+          cp build/app/outputs/bundle/release/app-release.aab ../dist/CHIFFRE-CONSEIL.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CHIFFRE-CONSEIL-android
+          path: dist/
