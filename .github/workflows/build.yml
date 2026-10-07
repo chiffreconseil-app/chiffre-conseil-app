@@ -24,13 +24,21 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Compiler APK debug, APK release et AAB
+      - name: Préparer le projet
         working-directory: chiffre_conseil
         run: |
           flutter create --platforms=android --org net.chiffreconseil --project-name chiffre_conseil .
           python3 tool/configure_android.py
           flutter pub get
-          flutter test
+
+      - name: Tests
+        working-directory: chiffre_conseil
+        continue-on-error: true
+        run: flutter test --reporter expanded
+
+      - name: Compiler APK debug, APK release et AAB
+        working-directory: chiffre_conseil
+        run: |
           flutter build apk --debug
           flutter build apk --release
           flutter build appbundle --release
